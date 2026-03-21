@@ -1,0 +1,31 @@
+FROM alpine:latest
+ARG OVMS_REF=master
+
+RUN apk update
+RUN apk add git sed bash perl netcat-openbsd mysql-client make tzdata
+# needed for PW hashing
+RUN apk add apache2-utils
+# Required perl modules
+# perl-anyevent-http not available in Alpine, install via cpanm below
+RUN apk add perl-dbi perl-dbd-mysql perl-digest-hmac perl-config-inifiles perl-uri perl-json-xs
+# perl-ev and perl-object-event not available in Alpine, install via cpanm below
+RUN apk add perl-crypt-rc4 perl-data-uuid perl-protocol-websocket perl-anyevent perl-app-cpanminus
+# needed for Net::APNS::Simple
+RUN apk add perl-cryptx perl-protocol-http2 perl-crypt-jwt perl-io-socket-ssl perl-role-tiny perl-module-build-tiny
+RUN apk add perl-extutils-helpers perl-extutils-config perl-moo perl-sub-quote
+# needed for compiling C-based Perl modules (EV, etc.)
+RUN apk add perl-dev linux-headers gcc make musl-dev
+
+RUN cpanm EV
+RUN cpanm Object::Event
+RUN cpanm AnyEvent::HTTP
+RUN cpanm AnyEvent::HTTPD
+RUN cpanm Net::APNS::Simple
+
+COPY v3/server /usr/src/app/server
+
+RUN chmod +x /usr/src/app/server/ovms_server.pl
+WORKDIR /usr/src/app/server
+ENTRYPOINT [ "/usr/src/app/server/ovms_server.pl" ]
+
+
