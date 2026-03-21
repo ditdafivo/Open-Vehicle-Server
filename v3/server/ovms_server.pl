@@ -12,7 +12,7 @@ use AnyEvent::Log;
 use AnyEvent::Debug;
 use Digest::MD5;
 use Digest::HMAC;
-use Crypt::RC4::XS;
+use Crypt::RC4;
 use MIME::Base64;
 use JSON::XS;
 use URI;

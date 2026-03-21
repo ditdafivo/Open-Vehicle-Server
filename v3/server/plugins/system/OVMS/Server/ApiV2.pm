@@ -518,9 +518,9 @@ sub welcome_30
   $serverhmac->add($sessionkey);
   my $serverkey = $serverhmac->digest;
   AE::log debug => "#$fn $clienttype $vkey crypt session key $sessionkey (".unpack("H*",$serverkey).")";
-  my $txcipher = Crypt::RC4::XS->new($serverkey);
+  my $txcipher = Crypt::RC4->new($serverkey);
   $txcipher->RC4(chr(0) x 1024);  # Prime with 1KB of zeros
-  my $rxcipher = Crypt::RC4::XS->new($serverkey);
+  my $rxcipher = Crypt::RC4->new($serverkey);
   $rxcipher->RC4(chr(0) x 1024);  # Prime with 1KB of zeros
 
   # Store these for later use...

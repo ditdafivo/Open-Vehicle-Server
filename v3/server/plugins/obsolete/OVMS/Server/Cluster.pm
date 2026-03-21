@@ -227,9 +227,9 @@ sub svr_welcome
   $client_hmac->add($svr_client_token);
   my $client_key = $client_hmac->digest;
 
-  $svr_txcipher = Crypt::RC4::XS->new($client_key);
+  $svr_txcipher = Crypt::RC4->new($client_key);
   $svr_txcipher->RC4(chr(0) x 1024); # Prime the cipher
-  $svr_rxcipher = Crypt::RC4::XS->new($client_key);
+  $svr_rxcipher = Crypt::RC4->new($client_key);
   $svr_rxcipher->RC4(chr(0) x 1024); # Prime the cipher
 
   $svr_handle->push_read (line => \&svr_line);
