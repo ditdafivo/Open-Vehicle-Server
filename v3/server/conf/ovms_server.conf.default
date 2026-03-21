@@ -32,13 +32,8 @@ apikey=<your GCM API key, see README>
 load=<<EOT
 VECE
 DbDBI
-AuthDrupal
-ApiV2
-Push
-PushAPNS
-PushGCM
-PushMAIL
 ApiHttp
 ApiHttpCore
-ApiHttpMqapi
+ApiV2
+AuthDbSimple
 EOT
