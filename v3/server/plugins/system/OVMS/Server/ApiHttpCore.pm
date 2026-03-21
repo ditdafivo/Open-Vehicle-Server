@@ -16,6 +16,7 @@ use AnyEvent;
 use AnyEvent::Log;
 use Data::UUID;
 use Digest::SHA;
+use MIME::Base64 qw(decode_base64);
 use OVMS::Server::Core;
 use OVMS::Server::Plugin;
 use Time::Piece;
@@ -1018,6 +1019,22 @@ sub http_request_in_api
         }
       else
         {
+        # Try HTTP Basic auth header (avoid credentials in URL):
+        #   Authorization: Basic base64(username:password)
+        my $auth = $headers->{'authorization'};
+        $auth = $headers->{'Authorization'} if (!defined $auth);
+        if (defined $auth && $auth =~ /^Basic\s+(.+)$/i)
+          {
+          my $decoded;
+          eval { $decoded = decode_base64($1); 1; };
+          if (defined $decoded && $decoded =~ /^([^:]+):(.*)$/s)
+            {
+            my ($bu, $bp) = ($1, $2);
+            $permissions = FunctionCall('Authenticate',$bu,$bp);
+            $username = $bu if ($permissions ne '');
+            }
+          }
+
         my $u = $req->url->query_param('username');
         my $p = $req->url->query_param('password');
         if ((defined $u)&&(defined $p))
