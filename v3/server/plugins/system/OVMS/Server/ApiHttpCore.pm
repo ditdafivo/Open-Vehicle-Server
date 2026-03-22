@@ -978,19 +978,68 @@ BEGIN { $http_request_api_call{'GET:features'} = [ \&http_request_api_features_g
 sub http_request_api_features_get
   {
   my ($httpd, $req, $sessionid, $username, $permissions, @rest) = @_;
+  my ($vehicleid) = @rest;
 
-  $req->respond ( [501, 'Not Implemented', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Not yet implemented\n"] );
-  $httpd->stop_request;
+  if ( ! FunctionCall('DbHasVehicle', $username, $vehicleid) )
+    {
+    AE::log info => join(' ','http','-',$sessionid,$req->client_host.':'.$req->client_port,'Forbidden access',$vehicleid);
+    $req->respond ( [403, 'Forbidden', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Forbidden\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  my $cfn = CarConnection($username,$vehicleid);
+  if (!defined $cfn)
+    {
+    $req->respond ( [409, 'Conflict', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Vehicle not connected\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  &api_execute_v2_command($httpd, $req, $username, $vehicleid, $cfn, 1);
   }
 
 # PUT	/api/feature/<VEHICLEID>	                 Set a vehicle feature
-BEGIN { $http_request_api_call{'PUT:features'} = [ \&http_request_api_features_put ]; }
+BEGIN { $http_request_api_call{'PUT:feature'} = [ \&http_request_api_features_put ]; }
+BEGIN { $http_request_api_call{'PUT:features'} = [ \&http_request_api_features_put ]; } # compatibility alias
 sub http_request_api_features_put
   {
   my ($httpd, $req, $sessionid, $username, $permissions, @rest) = @_;
+  my ($vehicleid) = @rest;
 
-  $req->respond ( [501, 'Not Implemented', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Not yet implemented\n"] );
-  $httpd->stop_request;
+  if ( ! FunctionCall('DbHasVehicle', $username, $vehicleid) )
+    {
+    AE::log info => join(' ','http','-',$sessionid,$req->client_host.':'.$req->client_port,'Forbidden access',$vehicleid);
+    $req->respond ( [403, 'Forbidden', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Forbidden\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  my $cfn = CarConnection($username,$vehicleid);
+  if (!defined $cfn)
+    {
+    $req->respond ( [409, 'Conflict', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Vehicle not connected\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  my $feature = $req->parm('feature');
+  my $value = $req->parm('value');
+
+  if ((!defined $feature)||($feature !~ /^\d+$/))
+    {
+    $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Invalid feature (must be numeric)\n"] );
+    $httpd->stop_request;
+    return;
+    }
+  if (!defined $value)
+    {
+    $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Missing value parameter\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  &api_execute_v2_command($httpd, $req, $username, $vehicleid, $cfn, 2, $feature, $value);
   }
 
 ########################################################
@@ -1001,19 +1050,68 @@ BEGIN { $http_request_api_call{'GET:parameters'} = [ \&http_request_api_paramete
 sub http_request_api_parameters_get
   {
   my ($httpd, $req, $sessionid, $username, $permissions, @rest) = @_;
+  my ($vehicleid) = @rest;
 
-  $req->respond ( [501, 'Not Implemented', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Not yet implemented\n"] );
-  $httpd->stop_request;
+  if ( ! FunctionCall('DbHasVehicle', $username, $vehicleid) )
+    {
+    AE::log info => join(' ','http','-',$sessionid,$req->client_host.':'.$req->client_port,'Forbidden access',$vehicleid);
+    $req->respond ( [403, 'Forbidden', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Forbidden\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  my $cfn = CarConnection($username,$vehicleid);
+  if (!defined $cfn)
+    {
+    $req->respond ( [409, 'Conflict', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Vehicle not connected\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  &api_execute_v2_command($httpd, $req, $username, $vehicleid, $cfn, 3);
   }
 
 # PUT	/api/parameter/<VEHICLEID>		               Set a vehicle parameter
-BEGIN { $http_request_api_call{'PUT:parameters'} = [ \&http_request_api_parameters_put ]; }
+BEGIN { $http_request_api_call{'PUT:parameter'} = [ \&http_request_api_parameters_put ]; }
+BEGIN { $http_request_api_call{'PUT:parameters'} = [ \&http_request_api_parameters_put ]; } # compatibility alias
 sub http_request_api_parameters_put
   {
   my ($httpd, $req, $sessionid, $username, $permissions, @rest) = @_;
+  my ($vehicleid) = @rest;
 
-  $req->respond ( [501, 'Not Implemented', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Not yet implemented\n"] );
-  $httpd->stop_request;
+  if ( ! FunctionCall('DbHasVehicle', $username, $vehicleid) )
+    {
+    AE::log info => join(' ','http','-',$sessionid,$req->client_host.':'.$req->client_port,'Forbidden access',$vehicleid);
+    $req->respond ( [403, 'Forbidden', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Forbidden\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  my $cfn = CarConnection($username,$vehicleid);
+  if (!defined $cfn)
+    {
+    $req->respond ( [409, 'Conflict', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Vehicle not connected\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  my $parameter = $req->parm('parameter');
+  my $value = $req->parm('value');
+
+  if ((!defined $parameter)||($parameter !~ /^\d+$/))
+    {
+    $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Invalid parameter (must be numeric)\n"] );
+    $httpd->stop_request;
+    return;
+    }
+  if (!defined $value)
+    {
+    $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Missing value parameter\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  &api_execute_v2_command($httpd, $req, $username, $vehicleid, $cfn, 4, $parameter, $value);
   }
 
 ########################################################
@@ -1024,9 +1122,25 @@ BEGIN { $http_request_api_call{'PUT:reset'} = [ \&http_request_api_reset ]; }
 sub http_request_api_reset
   {
   my ($httpd, $req, $sessionid, $username, $permissions, @rest) = @_;
+  my ($vehicleid) = @rest;
 
-  $req->respond ( [501, 'Not Implemented', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Not yet implemented\n"] );
-  $httpd->stop_request;
+  if ( ! FunctionCall('DbHasVehicle', $username, $vehicleid) )
+    {
+    AE::log info => join(' ','http','-',$sessionid,$req->client_host.':'.$req->client_port,'Forbidden access',$vehicleid);
+    $req->respond ( [403, 'Forbidden', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Forbidden\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  my $cfn = CarConnection($username,$vehicleid);
+  if (!defined $cfn)
+    {
+    $req->respond ( [409, 'Conflict', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Vehicle not connected\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  &api_execute_v2_command($httpd, $req, $username, $vehicleid, $cfn, 5);
   }
 
 ########################################################
@@ -1216,6 +1330,12 @@ sub api_execute_v2_command
   my ($httpd, $req, $username, $vehicleid, $cfn, $command, @params) = @_;
 
   my $payload = join(',', $command, @params);
+  my $initial_rec = &api_vehiclerecord($username, $vehicleid, 'c');
+  my $initial_signature = '';
+  if (defined $initial_rec && defined $initial_rec->{'m_msgtime'} && defined $initial_rec->{'m_msg'})
+    {
+    $initial_signature = $initial_rec->{'m_msgtime'} . '|' . $initial_rec->{'m_msg'};
+    }
 
   my $start_epoch = time();
   my $cc = ConnGetAttributeRef($cfn,'cmdqueue');
@@ -1223,21 +1343,84 @@ sub api_execute_v2_command
   CarTransmit($username, $vehicleid, 'v2', 'C', $payload);
 
   my $timeout = 15;
+  my $last_seen = '';
+  my %list_items;
+  my $list_max;
+
   while (time() <= ($start_epoch + $timeout))
     {
     my $rec = &api_vehiclerecord($username, $vehicleid, 'c');
     if (defined $rec && defined $rec->{'m_msg'} && defined $rec->{'m_msgtime'} && ($rec->{'m_msg'} =~ /^(\d+),(\d+)(?:,(.*))?$/))
       {
+      my $signature = $rec->{'m_msgtime'} . '|' . $rec->{'m_msg'};
+      if (($signature eq $initial_signature) || ($signature eq $last_seen))
+        {
+        select(undef, undef, undef, 0.2);
+        next;
+        }
+
       my ($rsp_cmd,$rsp_result,$rsp_info) = ($1,$2,$3);
       if ($rsp_cmd == $command)
         {
-        my $msg_epoch;
-        eval {
-          my $t = Time::Piece->strptime($rec->{'m_msgtime'}, "%Y-%m-%d %H:%M:%S");
-          $msg_epoch = $t->epoch;
-          };
-        if (!defined $msg_epoch || $msg_epoch < $start_epoch)
+        $last_seen = $signature;
+
+        if (($command == 1) || ($command == 3))
           {
+          if ($rsp_result == 0 && defined $rsp_info && ($rsp_info =~ /^(\d+),(\d+),(.*)$/s))
+            {
+            my ($idx, $max, $value) = ($1, $2, $3);
+            $list_max = $max+0;
+            $list_items{$idx+0} = $value;
+            }
+
+          if ($rsp_result != 0 || (defined $list_max && scalar(keys %list_items) >= $list_max))
+            {
+            my @items;
+            if (defined $list_max)
+              {
+              for (my $i=0; $i<$list_max; $i++)
+                {
+                push @items, {
+                  number => $i,
+                  value => $list_items{$i},
+                  available => (defined $list_items{$i}) ? JSON::XS::true : JSON::XS::false
+                  };
+                }
+              }
+            my %result = (
+              vehicleid => $vehicleid,
+              command => $rsp_cmd,
+              result => $rsp_result+0,
+              params => \@params,
+              items => \@items
+              );
+            $result{'message'} = $rsp_info if (defined $rsp_info && $rsp_info ne '');
+            my $json = JSON::XS->new->utf8->canonical->encode (\%result) . "\n";
+            if ($rsp_result == 0)
+              {
+              $req->respond ( [200, 'Ok', { 'Content-Type' => 'application/json', 'Access-Control-Allow-Origin' => '*' }, $json] );
+              $httpd->stop_request;
+              return;
+              }
+            elsif ($rsp_result == 1)
+              {
+              $req->respond ( [409, 'Conflict', { 'Content-Type' => 'application/json', 'Access-Control-Allow-Origin' => '*' }, $json] );
+              $httpd->stop_request;
+              return;
+              }
+            elsif (($rsp_result == 2)||($rsp_result == 3))
+              {
+              $req->respond ( [501, 'Not Implemented', { 'Content-Type' => 'application/json', 'Access-Control-Allow-Origin' => '*' }, $json] );
+              $httpd->stop_request;
+              return;
+              }
+            else
+              {
+              $req->respond ( [502, 'Bad Gateway', { 'Content-Type' => 'application/json', 'Access-Control-Allow-Origin' => '*' }, $json] );
+              $httpd->stop_request;
+              return;
+              }
+            }
           select(undef, undef, undef, 0.2);
           next;
           }
