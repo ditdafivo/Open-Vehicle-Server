@@ -763,8 +763,118 @@ sub http_request_api_charge_put
   {
   my ($httpd, $req, $sessionid, $username, $permissions, @rest) = @_;
 
-  $req->respond ( [501, 'Not Implemented', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Not yet implemented\n"] );
-  $httpd->stop_request;
+  my ($vehicleid) = @rest;
+
+  if ( ! FunctionCall('DbHasVehicle', $username, $vehicleid) )
+    {
+    AE::log info => join(' ','http','-',$sessionid,$req->client_host.':'.$req->client_port,'Forbidden access',$vehicleid);
+    $req->respond ( [403, 'Forbidden', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Forbidden\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  my $cfn = CarConnection($username,$vehicleid);
+  if (!defined $cfn)
+    {
+    $req->respond ( [409, 'Conflict', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Vehicle not connected\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  my $action = $req->parm('action');
+  my $mode = $req->parm('mode');
+  my $current = $req->parm('current');
+  my $timermode = $req->parm('timermode');
+  my $starttime = $req->parm('starttime');
+
+  my ($command, @params);
+  if (defined $action)
+    {
+    if ($action eq 'start')
+      {
+      $command = 11;
+      }
+    elsif ($action eq 'stop')
+      {
+      $command = 12;
+      }
+    else
+      {
+      $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Invalid action (must be start or stop)\n"] );
+      $httpd->stop_request;
+      return;
+      }
+    }
+  elsif (defined $timermode || defined $starttime)
+    {
+    if ((!defined $timermode)||(!defined $starttime))
+      {
+      $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Both timermode and starttime are required\n"] );
+      $httpd->stop_request;
+      return;
+      }
+    if (($timermode !~ /^\d+$/)||(($timermode != 0)&&($timermode != 1)))
+      {
+      $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Invalid timermode (must be 0 or 1)\n"] );
+      $httpd->stop_request;
+      return;
+      }
+    if ($starttime !~ /^\d+$/)
+      {
+      $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Invalid starttime (must be numeric)\n"] );
+      $httpd->stop_request;
+      return;
+      }
+    $command = 17;
+    @params = ($timermode, $starttime);
+    }
+  elsif (defined $mode && defined $current)
+    {
+    if (($mode !~ /^\d+$/)||($mode !~ /^(0|1|3|4)$/))
+      {
+      $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Invalid mode (must be 0, 1, 3 or 4)\n"] );
+      $httpd->stop_request;
+      return;
+      }
+    if ($current !~ /^\d+$/)
+      {
+      $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Invalid current (must be numeric)\n"] );
+      $httpd->stop_request;
+      return;
+      }
+    $command = 16;
+    @params = ($mode, $current);
+    }
+  elsif (defined $mode)
+    {
+    if (($mode !~ /^\d+$/)||($mode !~ /^(0|1|3|4)$/))
+      {
+      $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Invalid mode (must be 0, 1, 3 or 4)\n"] );
+      $httpd->stop_request;
+      return;
+      }
+    $command = 10;
+    @params = ($mode);
+    }
+  elsif (defined $current)
+    {
+    if ($current !~ /^\d+$/)
+      {
+      $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Invalid current (must be numeric)\n"] );
+      $httpd->stop_request;
+      return;
+      }
+    $command = 15;
+    @params = ($current);
+    }
+  else
+    {
+    $req->respond ( [400, 'Bad Request', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "No supported charge control parameters supplied\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  &api_execute_v2_command($httpd, $req, $username, $vehicleid, $cfn, $command, @params);
   }
 
 # DELETE	/api/charge/<VEHICLEID>			            Abort a vehicle charge
@@ -773,8 +883,25 @@ sub http_request_api_charge_delete
   {
   my ($httpd, $req, $sessionid, $username, $permissions, @rest) = @_;
 
-  $req->respond ( [501, 'Not Implemented', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Not yet implemented\n"] );
-  $httpd->stop_request;
+  my ($vehicleid) = @rest;
+
+  if ( ! FunctionCall('DbHasVehicle', $username, $vehicleid) )
+    {
+    AE::log info => join(' ','http','-',$sessionid,$req->client_host.':'.$req->client_port,'Forbidden access',$vehicleid);
+    $req->respond ( [403, 'Forbidden', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Forbidden\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  my $cfn = CarConnection($username,$vehicleid);
+  if (!defined $cfn)
+    {
+    $req->respond ( [409, 'Conflict', { 'Content-Type' => 'text/plain', 'Access-Control-Allow-Origin' => '*' }, "Vehicle not connected\n"] );
+    $httpd->stop_request;
+    return;
+    }
+
+  &api_execute_v2_command($httpd, $req, $username, $vehicleid, $cfn, 12);
   }
 
 ########################################################
@@ -1082,6 +1209,86 @@ sub api_vehiclerecord
     }
 
   return undef;
+  }
+
+sub api_execute_v2_command
+  {
+  my ($httpd, $req, $username, $vehicleid, $cfn, $command, @params) = @_;
+
+  my $payload = join(',', $command, @params);
+
+  my $start_epoch = time();
+  my $cc = ConnGetAttributeRef($cfn,'cmdqueue');
+  push @{$$cc},0;
+  CarTransmit($username, $vehicleid, 'v2', 'C', $payload);
+
+  my $timeout = 15;
+  while (time() <= ($start_epoch + $timeout))
+    {
+    my $rec = &api_vehiclerecord($username, $vehicleid, 'c');
+    if (defined $rec && defined $rec->{'m_msg'} && defined $rec->{'m_msgtime'} && ($rec->{'m_msg'} =~ /^(\d+),(\d+)(?:,(.*))?$/))
+      {
+      my ($rsp_cmd,$rsp_result,$rsp_info) = ($1,$2,$3);
+      if ($rsp_cmd == $command)
+        {
+        my $msg_epoch;
+        eval {
+          my $t = Time::Piece->strptime($rec->{'m_msgtime'}, "%Y-%m-%d %H:%M:%S");
+          $msg_epoch = $t->epoch;
+          };
+        if (!defined $msg_epoch || $msg_epoch < $start_epoch)
+          {
+          select(undef, undef, undef, 0.2);
+          next;
+          }
+
+        my %result = (
+          vehicleid => $vehicleid,
+          command => $rsp_cmd,
+          result => $rsp_result+0,
+          params => \@params
+          );
+        $result{'message'} = $rsp_info if (defined $rsp_info && $rsp_info ne '');
+        my $json = JSON::XS->new->utf8->canonical->encode (\%result) . "\n";
+
+        if ($rsp_result == 0)
+          {
+          $req->respond ( [200, 'Ok', { 'Content-Type' => 'application/json', 'Access-Control-Allow-Origin' => '*' }, $json] );
+          $httpd->stop_request;
+          return;
+          }
+        elsif ($rsp_result == 1)
+          {
+          $req->respond ( [409, 'Conflict', { 'Content-Type' => 'application/json', 'Access-Control-Allow-Origin' => '*' }, $json] );
+          $httpd->stop_request;
+          return;
+          }
+        elsif (($rsp_result == 2)||($rsp_result == 3))
+          {
+          $req->respond ( [501, 'Not Implemented', { 'Content-Type' => 'application/json', 'Access-Control-Allow-Origin' => '*' }, $json] );
+          $httpd->stop_request;
+          return;
+          }
+        else
+          {
+          $req->respond ( [502, 'Bad Gateway', { 'Content-Type' => 'application/json', 'Access-Control-Allow-Origin' => '*' }, $json] );
+          $httpd->stop_request;
+          return;
+          }
+        }
+      }
+    select(undef, undef, undef, 0.2);
+    }
+
+  my %timeout_result = (
+    vehicleid => $vehicleid,
+    command => $command,
+    params => \@params,
+    error => 'No response from vehicle'
+    );
+  my $json = JSON::XS->new->utf8->canonical->encode (\%timeout_result) . "\n";
+  $req->respond ( [504, 'Gateway Timeout', { 'Content-Type' => 'application/json', 'Access-Control-Allow-Origin' => '*' }, $json] );
+  $httpd->stop_request;
   }
 
 1;

@@ -291,6 +291,37 @@ Return vehicle charge status:
 * ``m_msgage_d``: age (seconds) of last doors/env (D) message received if available
 * ``m_msgtime_d``: time stamp (UTC) of last doors/env (D) message received if available
 
+---------------------------
+PUT /api/charge/<VEHICLEID>
+---------------------------
+
+Set vehicle charge status. One control operation is selected from the supplied URL/query
+parameters:
+
+* ``action=start``: start charging (protocol command ``11``)
+* ``action=stop``: stop charging (protocol command ``12``)
+* ``mode=<0|1|3|4>``: set charge mode (protocol command ``10``)
+* ``current=<amps>``: set charge current (protocol command ``15``)
+* ``mode=<0|1|3|4>`` + ``current=<amps>``: set mode and current (protocol command ``16``)
+* ``timermode=<0|1>`` + ``starttime=<minutes>``: set timer mode and start time (protocol command ``17``)
+
+The request requires the vehicle to be currently connected to the server.
+The HTTP response reflects the command response message from the vehicle:
+
+* ``200``: command succeeded (result ``0``)
+* ``409``: command failed (result ``1``)
+* ``501``: command unsupported/unimplemented (result ``2``/``3``)
+* ``504``: timeout waiting for vehicle response
+
+------------------------------
+DELETE /api/charge/<VEHICLEID>
+------------------------------
+
+Abort vehicle charge (protocol command ``12``).
+
+The request requires the vehicle to be currently connected to the server and uses the
+same response mapping as ``PUT /api/charge/<VEHICLEID>``.
+
 -------------------------------
 GET /api/historical/<VEHICLEID>
 -------------------------------
@@ -333,8 +364,6 @@ URL parameters:
 Not Yet Implemented
 -------------------
 
-* PUT /api/charge/<VEHICLEID>   Set vehicle charge status
-* DELETE /api/charge/<VEHICLEID>   Abort a vehicle charge
 * GET /api/lock/<VEHICLEID>   Return vehicle lock status
 * PUT /api/lock/<VEHICLEID>   Lock a vehicle
 * DELETE /api/lock/<VEHICLEID>   Unlock a vehicle
@@ -347,4 +376,3 @@ Not Yet Implemented
 * PUT /api/parameter/<VEHICLEID>  Set a vehicle parameter
 * PUT /api/reset/<VEHICLEID>   Reset the module in a particular vehicle
 * PUT /api/homelink/<VEHICLEID>  Activate home link
-
