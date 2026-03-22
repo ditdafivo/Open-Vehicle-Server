@@ -322,6 +322,111 @@ Abort vehicle charge (protocol command ``12``).
 The request requires the vehicle to be currently connected to the server and uses the
 same response mapping as ``PUT /api/charge/<VEHICLEID>``.
 
+-----------------------------
+GET /api/features/<VEHICLEID>
+-----------------------------
+
+Request the vehicle feature list (protocol command ``1``).
+
+The request requires the vehicle to be currently connected to the server.
+The HTTP response reflects the command response message from the vehicle:
+
+* ``200``: command succeeded (result ``0``)
+* ``409``: command failed (result ``1``)
+* ``501``: command unsupported/unimplemented (result ``2``/``3``)
+* ``504``: timeout waiting for vehicle response
+
+On success, the JSON response includes:
+
+* ``vehicleid``: vehicle ID
+* ``command``: ``1``
+* ``result``: protocol result code
+* ``items``: array of feature entries with:
+
+  * ``number``: feature number
+  * ``value``: feature value (if reported by the module)
+  * ``available``: true if the module reported this feature entry
+
+-----------------------------
+PUT /api/feature/<VEHICLEID>
+-----------------------------
+
+Set a vehicle feature (protocol command ``2``).
+
+URL/query parameters:
+
+* ``feature``: feature number (required)
+* ``value``: value to set (required)
+
+The request requires the vehicle to be currently connected to the server.
+The HTTP response reflects the command response message from the vehicle:
+
+* ``200``: command succeeded (result ``0``)
+* ``409``: command failed (result ``1``)
+* ``501``: command unsupported/unimplemented (result ``2``/``3``)
+* ``504``: timeout waiting for vehicle response
+
+-------------------------------
+GET /api/parameters/<VEHICLEID>
+-------------------------------
+
+Request the vehicle parameter list (protocol command ``3``).
+
+The request requires the vehicle to be currently connected to the server.
+The HTTP response reflects the command response message from the vehicle:
+
+* ``200``: command succeeded (result ``0``)
+* ``409``: command failed (result ``1``)
+* ``501``: command unsupported/unimplemented (result ``2``/``3``)
+* ``504``: timeout waiting for vehicle response
+
+On success, the JSON response includes:
+
+* ``vehicleid``: vehicle ID
+* ``command``: ``3``
+* ``result``: protocol result code
+* ``items``: array of parameter entries with:
+
+  * ``number``: parameter number
+  * ``value``: parameter value (if reported by the module)
+  * ``available``: true if the module reported this parameter entry
+
+-------------------------------
+PUT /api/parameter/<VEHICLEID>
+-------------------------------
+
+Set a vehicle parameter (protocol command ``4``).
+
+URL/query parameters:
+
+* ``parameter``: parameter number (required)
+* ``value``: value to set (required)
+
+The request requires the vehicle to be currently connected to the server.
+The HTTP response reflects the command response message from the vehicle:
+
+* ``200``: command succeeded (result ``0``)
+* ``409``: command failed (result ``1``)
+* ``501``: command unsupported/unimplemented (result ``2``/``3``)
+* ``504``: timeout waiting for vehicle response
+
+--------------------------
+PUT /api/reset/<VEHICLEID>
+--------------------------
+
+Reset the vehicle module (protocol command ``5``).
+
+The request requires the vehicle to be currently connected to the server.
+The server waits for the module command response acknowledgement before returning
+the REST response.
+
+The HTTP response reflects the command response message from the vehicle:
+
+* ``200``: command succeeded (result ``0``)
+* ``409``: command failed (result ``1``)
+* ``501``: command unsupported/unimplemented (result ``2``/``3``)
+* ``504``: timeout waiting for vehicle response
+
 -------------------------------
 GET /api/historical/<VEHICLEID>
 -------------------------------
@@ -370,9 +475,4 @@ Not Yet Implemented
 * GET /api/valet/<VEHICLEID>   Return valet status
 * PUT /api/valet/<VEHICLEID>   Enable valet mode
 * DELETE /api/valet/<VEHICLEID>   Disable valet mode
-* GET /api/features/<VEHICLEID>  Return vehicle features
-* PUT /api/feature/<VEHICLEID>  Set a vehicle feature
-* GET /api/parameters/<VEHICLEID>  Return vehicle parameters
-* PUT /api/parameter/<VEHICLEID>  Set a vehicle parameter
-* PUT /api/reset/<VEHICLEID>   Reset the module in a particular vehicle
 * PUT /api/homelink/<VEHICLEID>  Activate home link

@@ -1330,6 +1330,12 @@ sub api_execute_v2_command
   my ($httpd, $req, $username, $vehicleid, $cfn, $command, @params) = @_;
 
   my $payload = join(',', $command, @params);
+  my $initial_rec = &api_vehiclerecord($username, $vehicleid, 'c');
+  my $initial_signature = '';
+  if (defined $initial_rec && defined $initial_rec->{'m_msgtime'} && defined $initial_rec->{'m_msg'})
+    {
+    $initial_signature = $initial_rec->{'m_msgtime'} . '|' . $initial_rec->{'m_msg'};
+    }
 
   my $start_epoch = time();
   my $cc = ConnGetAttributeRef($cfn,'cmdqueue');
@@ -1346,30 +1352,20 @@ sub api_execute_v2_command
     my $rec = &api_vehiclerecord($username, $vehicleid, 'c');
     if (defined $rec && defined $rec->{'m_msg'} && defined $rec->{'m_msgtime'} && ($rec->{'m_msg'} =~ /^(\d+),(\d+)(?:,(.*))?$/))
       {
+      my $signature = $rec->{'m_msgtime'} . '|' . $rec->{'m_msg'};
+      if (($signature eq $initial_signature) || ($signature eq $last_seen))
+        {
+        select(undef, undef, undef, 0.2);
+        next;
+        }
+
       my ($rsp_cmd,$rsp_result,$rsp_info) = ($1,$2,$3);
       if ($rsp_cmd == $command)
         {
-        my $msg_epoch;
-        eval {
-          my $t = Time::Piece->strptime($rec->{'m_msgtime'}, "%Y-%m-%d %H:%M:%S");
-          $msg_epoch = $t->epoch;
-          };
-        if (!defined $msg_epoch || $msg_epoch < $start_epoch)
-          {
-          select(undef, undef, undef, 0.2);
-          next;
-          }
+        $last_seen = $signature;
 
         if (($command == 1) || ($command == 3))
           {
-          my $signature = $rec->{'m_msgtime'} . '|' . $rec->{'m_msg'};
-          if ($signature eq $last_seen)
-            {
-            select(undef, undef, undef, 0.2);
-            next;
-            }
-          $last_seen = $signature;
-
           if ($rsp_result == 0 && defined $rsp_info && ($rsp_info =~ /^(\d+),(\d+),(.*)$/s))
             {
             my ($idx, $max, $value) = ($1, $2, $3);
